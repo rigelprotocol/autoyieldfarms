@@ -1,0 +1,38 @@
+{
+  "name": "oro2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "clean": "rm -rf .config .npm .node-gyp node_modules && npm install",
+    "cleanSol": "rm -rf build/contracts",
+    "compile": "clear && truffle compile && npm run lint",
+    "coverage": "truffle run coverage file='test/*.js'",
+    "lint": "solhint \"contracts/**/*.sol\"",
+    "migrate": "clear && truffle migrate",
+    "migrate:rinkeby": "clear && truffle migrate --network rinkeby -f 3 --to 3",
+    "migrateAll": "npm run compile && truffle migrate --reset",
+    "recompile": "clear && npm run cleanSol && truffle compile --all && npm run lint",
+    "test": "clear && truffle test --network development"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^3.1.0",
+    "@openzeppelin/test-helpers": "^0.5.6",
+    "lint": "^0.7.0",
+    "solc": "^0.5.17"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@openzeppelin/test-environment": "^0.1.2",
+    "@openzeppelin/test-helpers": "^0.5.4",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "chai-bignumber": "^2.0.2",
+    "coveralls": "^3.0.2",
+    "eslint-config-airbnb": "^18.0.1",
+    "eslint-plugin-import": "^2.20.1",
+    "mocha": "^5.2.0",
+    "solidity-coverage": "^0.7.14"
+  }
+}

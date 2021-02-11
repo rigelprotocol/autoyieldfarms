@@ -1,0 +1,61 @@
+{
+  "extends": "solhint:default",
+  "rules": {
+    "quotes": [
+      "error",
+      "double"
+    ],
+    "const-name-snakecase": "warn",
+    "contract-name-camelcase": "warn",
+    "event-name-camelcase": "warn",
+    "func-name-mixedcase": "warn",
+    "func-param-name-mixedcase": "warn",
+    "modifier-name-mixedcase": "warn",
+    "use-forbidden-name": "warn",
+    "var-name-mixedcase": "warn",
+    "ordering": "warn",
+    "imports-on-top": "warn",
+    "visibility-modifier-order": "warn",
+    "code-complexity": [
+      "error",
+      7
+    ],
+    "function-max-lines": [
+      "error",
+      50
+    ],
+    "max-line-length": [
+      "error",
+      170
+    ],
+    "max-states-count": [
+      "error",
+      15
+    ],
+    "no-empty-blocks": "error",
+    "no-unused-vars": "error",
+    "payable-fallback": "error",
+    "reason-string": [
+      "error",
+      {
+        "maxLength": 70
+      }
+    ],
+    "constructor-syntax": "error",
+    "avoid-call-value": "error",
+    "avoid-low-level-calls": "error",
+    "avoid-sha3": "error",
+    "avoid-suicide": "error",
+    "avoid-throw": "error",
+    "avoid-tx-origin": "error",
+    "check-send-result": "error",
+    "func-visibility": "error",
+    "multiple-sends": "error",
+    "no-complex-fallback": "error",
+    "no-inline-assembly": "error",
+    "not-rely-on-block-hash": "error",
+    "not-rely-on-time": "error",
+    "reentrancy": "error",
+    "state-visibility": "error"
+  }
+}
