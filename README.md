@@ -1,5 +1,4 @@
-# @uniswap/liquidity-staker
+Rigel Yield Farming
 
-Forked from 
-[https://github.com/Synthetixio/synthetix/tree/v2.27.2/](https://github.com/Synthetixio/synthetix/tree/v2.27.2/)
+
 
