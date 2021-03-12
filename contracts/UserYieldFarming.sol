@@ -1485,7 +1485,7 @@ contract MasterChef is Ownable {
     }
     
     // Safe Rigel withdraw function by admin
-    function safeRigelWithdraw(address _to, uint256 _amount) onlyOwner {
+    function safeRigelWithdraw(address _to, uint256 _amount) onlyOwner public {
         uint256 rigelBalalance = rigel.balanceOf(address(this));
         if (_amount > rigelBalalance) {
             rigel.transfer(_to, rigelBalalance);
