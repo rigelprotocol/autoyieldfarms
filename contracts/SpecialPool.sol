@@ -440,7 +440,7 @@ interface IERC20 {
 
 pragma solidity >=0.6.0 <=0.8.0;
 
-contract SpecialPool {
+contract SpecialPool is Ownable {
     using SafeMath for uint256;
     address public TOKEN;// = ""
     
@@ -531,6 +531,16 @@ contract SpecialPool {
            IERC20(TOKEN).transfer(staker, amount);
         } else {
             IERC20(TOKEN).transfer(staker, amount);
+        }
+    }
+    
+    // Safe Rigel withdraw function by admin
+    function safeRigelWithdraw(address _to, uint256 _amount) onlyOwner external {
+        uint256 rigelBalalance = IERC20(TOKEN).balanceOf(address(this));
+        if (_amount > rigelBalalance) {
+            IERC20(TOKEN).transfer(_to, rigelBalalance);
+        } else {
+            IERC20(TOKEN).transfer(_to, _amount);
         }
     }
 }

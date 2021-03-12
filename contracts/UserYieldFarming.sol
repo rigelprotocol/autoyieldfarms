@@ -1483,4 +1483,15 @@ contract MasterChef is Ownable {
         devaddr = _devaddr;
         devPercentage = percentage;
     }
+    
+    // Safe Rigel withdraw function by admin
+    function safeRigelWithdraw(address _to, uint256 _amount) onlyOwner {
+        uint256 rigelBalalance = rigel.balanceOf(address(this));
+        if (_amount > rigelBalalance) {
+            rigel.transfer(_to, rigelBalalance);
+        } else {
+            rigel.transfer(_to, _amount);
+        }
+    }
+    
 }
