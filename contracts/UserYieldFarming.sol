@@ -1405,8 +1405,7 @@ contract MasterChef is Ownable {
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 rigelReward = multiplier.mul(rigelPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        rigel.mint(devaddr, rigelReward.div(devPercentage));
-        rigel.mint(address(this), rigelReward);
+        safeRigelTransfer(devaddr, rigelReward.div(devPercentage));
         pool.accRigelPerShare = pool.accRigelPerShare.add(rigelReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
