@@ -1281,6 +1281,8 @@ contract MasterChef is Ownable {
     uint256 public startBlock;
     // Dev Percentage;
     uint256 public devPercentage;
+    // Fee Collected
+    uint256 public feeCollected;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdraw(address indexed user, uint256 indexed pid, uint256 amount);
@@ -1418,6 +1420,7 @@ contract MasterChef is Ownable {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         if(user.amount == 0) {
+            feeCollected = feeCollected.add(farmingFee);
             rigel.transferFrom(address(msg.sender), address(this), farmingFee);
         }
         updatePool(_pid);

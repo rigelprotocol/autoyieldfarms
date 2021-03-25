@@ -1,3 +1,7 @@
+/**
+ *Submitted for verification at Etherscan.io on 2021-03-24
+*/
+
 // SPDX-License-Identifier: UNLICENSED
 
 // File: contracts/math/SafeMath.sol
@@ -676,6 +680,7 @@ contract SpecialPool is Ownable {
         address user;
     } 
     UserData[] public userData;
+    mapping(address => bool) whitelist;
     
     event Stake(
         address indexed userAddress,
@@ -687,18 +692,22 @@ contract SpecialPool is Ownable {
         uint256 unStakedAmount,
         uint256 Time
     );
+    event Whitelist(
+        address indexed userAddress,
+        bool Status
+    );
     
     uint256 public ENTRY_RATE = 7.5E18;
     uint256 public DAYS30_RATE = 8E18;
     uint256 public YEAR_RATE = 10E18;
     uint256 public PENALTY = 1E18; 
     
-    uint256 public REQUIRED_QUANITY;
     uint256 public totalStaking;
     
-    constructor(uint256 _quantity, address _token) public {
-        REQUIRED_QUANITY = _quantity;
+    constructor(address _token) public {
         TOKEN = _token;
+        whitelist[msg.sender] = true;
+        emit Whitelist(msg.sender, true);
     }
     
     modifier validateStake (uint256 _stakeid ) {
@@ -708,7 +717,8 @@ contract SpecialPool is Ownable {
      
     function stake(uint256 _quantity) external {
         require(IBEP20(TOKEN).balanceOf(msg.sender) >= _quantity, "Insufficient Balance");
-        require(_quantity >= REQUIRED_QUANITY, "Insufficient Balance");
+        require(whitelist[msg.sender], "Address Not whitelisted");
+        
         userData.push(UserData({
             tokenQuantity : _quantity,
             intialTimestamp : block.timestamp,
@@ -730,22 +740,24 @@ contract SpecialPool is Ownable {
     
     function calculateRewards(uint256 stakeID) public view returns(uint256 reward) {
         UserData storage stake = userData[stakeID];
+        // get Interval time
         uint256 time = block.timestamp.sub(stake.intialTimestamp);
+        // Gte number of days
         uint256 day = time.mod(1 days);
         // Reward within 30 days
-        if(time < 30 days) {
+        if(day < 30 days) {
             reward = (stake.tokenQuantity.mul(ENTRY_RATE))/100E18;
             reward = (reward.div(365)).mul(day);
             // 1% penalty 
             reward = reward.sub(reward.mul(PENALTY).div(100E18));
         }
         // Reward after 30 days
-        if(time > 30 days && time < 90 days) {
+        if(day > 30 days && day < 90 days) {
             reward = (stake.tokenQuantity.mul(DAYS30_RATE))/100E18;
             reward = (reward.div(365)).mul(day);
         }
         // Reward after 1 year
-        if(time > 90 days) {
+        if(day > 90 days) {
             reward = (stake.tokenQuantity.mul(YEAR_RATE))/100E18;
             reward = (reward.div(365)).mul(day);
         }
@@ -760,6 +772,11 @@ contract SpecialPool is Ownable {
         }
     }
     
+    function updateWhitelist(address account, bool  status) onlyOwner external {
+        whitelist[account] = true;
+        emit Whitelist(account, status);
+    }
+    
     // Safe Rigel withdraw function by admin
     function safeRigelWithdraw(address _to, uint256 _amount) onlyOwner external {
         uint256 rigelBalalance = IBEP20(TOKEN).balanceOf(address(this));
@@ -770,4 +787,3 @@ contract SpecialPool is Ownable {
         }
     }
 }
-
