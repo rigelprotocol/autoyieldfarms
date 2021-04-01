@@ -291,7 +291,7 @@ interface IBEP20 {
 // File: contracts/utils/Address.sol
 
 
-pragma solidity ^0.6.2;
+pragma solidity ^0.6.12;
 
 /**
  * @dev Collection of functions related to the address type
@@ -454,7 +454,7 @@ library Address {
 // File: contracts/token/BEP20/SafeBEP20.sol
 
 
-pragma solidity ^0.6.0;
+pragma solidity ^0.6.12;
 
 
 
