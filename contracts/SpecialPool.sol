@@ -297,7 +297,7 @@ interface IBEP20 {
 // File: contracts/utils/Address.sol
 
 
-pragma solidity ^0.6.2;
+pragma solidity ^0.6.12;
 
 /**
  * @dev Collection of functions related to the address type
@@ -460,7 +460,7 @@ library Address {
 // File: contracts/token/BEP20/SafeBEP20.sol
 
 
-pragma solidity ^0.6.0;
+pragma solidity ^0.6.12;
 
 
 
@@ -745,22 +745,43 @@ contract SpecialPool is Ownable {
         // Gte number of days
         uint256 day = time.mod(1 days);
         // Reward within 30 days
-        if(day < 30 days) {
-            reward = (stake.tokenQuantity.mul(ENTRY_RATE))/100E18;
+        
+        if (block.timestamp <= stake.intialTimestamp + 30 days) {
+            reward = stake.tokenQuantity * PENALTY / 100E18;
             reward = (reward.div(365)).mul(day);
-            // 1% penalty 
             reward = reward.sub(reward.mul(PENALTY).div(100E18));
         }
-        // Reward after 30 days
-        if(day > 30 days && day < 90 days) {
-            reward = (stake.tokenQuantity.mul(DAYS30_RATE))/100E18;
+        
+        if (block.timestamp >= stake.intialTimestamp + 30 days && block.timestamp <= stake.intialTimestamp + 90 days) {
+            reward = (stake.tokenQuantity.mul(ENTRY_RATE))/100E18;
             reward = (reward.div(365)).mul(day);
         }
-        // Reward after 1 year
-        if(day > 90 days) {
+        
+        if (block.timestamp >= stake.intialTimestamp + 90 days) {
+            reward = (stake.tokenQuantity.mul(DAYS30_RATE))/100E18;
+        }
+        
+        if (block.timestamp >= stake.intialTimestamp + 15 minutes) {
             reward = (stake.tokenQuantity.mul(YEAR_RATE))/100E18;
             reward = (reward.div(365)).mul(day);
         }
+        
+        // if(day < 5 minutes) {
+        //     reward = (stake.tokenQuantity.mul(ENTRY_RATE))/100E18;
+        //     // reward = (reward.div(365)).mul(day);
+        //     // 1% penalty 
+        //     // reward = reward.sub(reward.mul(PENALTY).div(100E18));
+        // }
+        // // Reward after 30 days
+        // if(day > 5 minutes && day < 15 minutes) {
+        //     reward = (stake.tokenQuantity.mul(DAYS30_RATE))/100E18;
+        //     // reward = (reward.div(365)).mul(day);
+        // }
+        // // Reward after 1 year
+        // if(day > 15 minutes) {
+        //     reward = (stake.tokenQuantity.mul(YEAR_RATE))/100E18;
+        //     // reward = (reward.div(365)).mul(day);
+        // }
     }
     
     function safeTokenTransfer(address staker, uint256 amount) internal {
