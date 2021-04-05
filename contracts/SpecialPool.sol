@@ -1,6 +1,3 @@
-/**
- *Submitted for verification at Etherscan.io on 2021-03-24
-*/
 
 // SPDX-License-Identifier: UNLICENSED
 
@@ -743,7 +740,7 @@ contract SpecialPool is Ownable {
         // get Interval time
         uint256 time = block.timestamp.sub(stake.intialTimestamp);
         // Gte number of days
-        uint256 day = time.mod(1 days);
+        uint256 day = time.div(1 days);
         // Reward within 30 days
         if(day < 30 days) {
             reward = (stake.tokenQuantity.mul(ENTRY_RATE))/100E18;
@@ -762,7 +759,7 @@ contract SpecialPool is Ownable {
             reward = (reward.div(365)).mul(day);
         }
     }
-    
+
     function safeTokenTransfer(address staker, uint256 amount) internal {
         uint256 TokenBal = IBEP20(TOKEN).balanceOf(address(this));
         if (amount > TokenBal) {
@@ -786,4 +783,5 @@ contract SpecialPool is Ownable {
             IBEP20(TOKEN).transfer(_to, _amount);
         }
     }
+
 }
