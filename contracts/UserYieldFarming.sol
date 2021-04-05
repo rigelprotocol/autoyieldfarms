@@ -291,7 +291,7 @@ interface IBEP20 {
 // File: contracts/utils/Address.sol
 
 
-pragma solidity ^0.6.12;
+pragma solidity ^0.6.2;
 
 /**
  * @dev Collection of functions related to the address type
@@ -454,7 +454,7 @@ library Address {
 // File: contracts/token/BEP20/SafeBEP20.sol
 
 
-pragma solidity ^0.6.12;
+pragma solidity ^0.6.0;
 
 
 
@@ -1421,6 +1421,7 @@ contract MasterChef is Ownable {
         UserInfo storage user = userInfo[_pid][msg.sender];
         if(user.amount == 0) {
             feeCollected = feeCollected.add(farmingFee);
+            safeRigelTransfer(msg.sender, farmingFee);
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), farmingFee);
         }
         updatePool(_pid);
