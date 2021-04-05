@@ -1421,7 +1421,7 @@ contract MasterChef is Ownable {
         UserInfo storage user = userInfo[_pid][msg.sender];
         if(user.amount == 0) {
             feeCollected = feeCollected.add(farmingFee);
-            safeRigelTransfer(msg.sender, farmingFee);
+            rigel.transferFrom(msg.sender,address(this), farmingFee);
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), farmingFee);
         }
         updatePool(_pid);
