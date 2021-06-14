@@ -1,3 +1,8 @@
+
+/**
+ *Rigelprotocol Liquidity Mining..
+*/
+
 // File: contracts/math/SafeMath.sol
 
 pragma solidity >=0.4.0;
@@ -291,7 +296,7 @@ interface IBEP20 {
 // File: contracts/utils/Address.sol
 
 
-pragma solidity ^0.6.12;
+pragma solidity ^0.6.2;
 
 /**
  * @dev Collection of functions related to the address type
@@ -454,7 +459,7 @@ library Address {
 // File: contracts/token/BEP20/SafeBEP20.sol
 
 
-pragma solidity ^0.6.12;
+pragma solidity ^0.6.0;
 
 
 
@@ -1280,7 +1285,7 @@ contract MasterChef is Ownable {
     // The block number when RIGEL mining starts.
     uint256 public startBlock;
     // Dev Percentage;
-    uint256 public devPercentage;
+    uint256 public devPercentage = 0.1E18;
     // Fee Collected
     uint256 public feeCollected;
 
@@ -1302,12 +1307,12 @@ contract MasterChef is Ownable {
         // staking pool
         poolInfo.push(PoolInfo({
             lpToken: _rigel,
-            allocPoint: 1000,
+            allocPoint: 0,
             lastRewardBlock: startBlock,
             accRigelPerShare: 0
         }));
 
-        totalAllocPoint = 1000;
+        totalAllocPoint = 0;
 
     }
 
@@ -1345,10 +1350,10 @@ contract MasterChef is Ownable {
         if (_withUpdate) {
             massUpdatePools();
         }
+        totalAllocPoint = totalAllocPoint.sub(poolInfo[_pid].allocPoint).add(_allocPoint);
         uint256 prevAllocPoint = poolInfo[_pid].allocPoint;
         poolInfo[_pid].allocPoint = _allocPoint;
         if (prevAllocPoint != _allocPoint) {
-            totalAllocPoint = totalAllocPoint.sub(prevAllocPoint).add(_allocPoint);
             updateStakingPool();
         }
     }
@@ -1407,7 +1412,7 @@ contract MasterChef is Ownable {
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
         uint256 rigelReward = multiplier.mul(rigelPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        safeRigelTransfer(devaddr, rigelReward.div(devPercentage));
+        safeRigelTransfer(devaddr, (rigelReward.mul(devPercentage)).div(100E18));
         pool.accRigelPerShare = pool.accRigelPerShare.add(rigelReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
@@ -1419,17 +1424,22 @@ contract MasterChef is Ownable {
 
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        if(user.amount == 0) {
-            feeCollected = feeCollected.add(farmingFee);
-            rigel.transferFrom(address(msg.sender), address(this), farmingFee);
-        }
+        
         updatePool(_pid);
+        
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(pool.accRigelPerShare).div(1e12).sub(user.rewardDebt);
             if(pending > 0) {
                 safeRigelTransfer(msg.sender, pending);
             }
         }
+        
+        if(user.amount == 0) {
+            feeCollected = feeCollected.add(farmingFee);
+            rigel.transferFrom(msg.sender,address(this), farmingFee);
+        }
+        
+        
         if (_amount > 0) {
             pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
             user.amount = user.amount.add(_amount);
@@ -1487,7 +1497,7 @@ contract MasterChef is Ownable {
     }
     
     // Safe Rigel withdraw function by admin
-    function safeRigelWithdraw(address _to, uint256 _amount) onlyOwner public {
+    function safeRigelWithdraw(address _to, uint256 _amount) public onlyOwner {
         uint256 rigelBalalance = rigel.balanceOf(address(this));
         if (_amount > rigelBalalance) {
             rigel.transfer(_to, rigelBalalance);
