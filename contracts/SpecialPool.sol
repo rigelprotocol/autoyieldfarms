@@ -1,8 +1,4 @@
 /**
- *Submitted for verification at BscScan.com on 2021-10-29
-*/
-
-/**
  *Submitted for verification at BscScan.com on 2021-07-31
 */
 
@@ -401,6 +397,7 @@ contract RGPSpecialPool is Ownable {
     // what mapping really is :
     // Mappings act as hash tables which consist of key types and corresponding value type pairs. They are defined like any other variable type in Solidity:
     // implementations "https://docs.soliditylang.org/en/v0.8.9/style-guide.html?highlight=mapping#mappings"
+    mapping(address => bool) public isAdminAddress; // updating and checking the addresses that are admins
     mapping(address => UserData) public userData; // get user detatils
     
     // event manager help to update user on token staked. 
@@ -445,18 +442,30 @@ contract RGPSpecialPool is Ownable {
     // total numbers of $RGP staked
     uint256 public totalStaking;
     
+    // minimum staked amount
+    uint256 minimum;
+    
     // called once at every deployment
     // A constructor is an optional function that is executed upon contract creation.
-    constructor(address _token) public {
+    constructor(address _token, uint256 miniMumStake) public {
+        minimum = miniMumStake;
         TOKEN = _token;
+        isAdminAddress[_msgSender()] = true;
     }
     
-   
+    // check to be sure that only License address/addresses can called a specific functions in this contract.
+    // A modifier allows you to control the behavior of your smart contract functions.
+    // implementations "https://docs.soliditylang.org/en/v0.8.9/structure-of-a-contract.html?highlight=modifier"
+    modifier onlyAdmin() {
+        require(isAdminAddress[_msgSender()]);
+        _;
+    }
+
     // where user can stake their $RGP,
     // _quantity: amount of $RGP that user want to stake.
     // user must approve the staking contract adrress before calling this function
     function stake(uint256 _quantity) public {
-        
+        require(_quantity >= minimum, "amount staked is less than minimum staking amount");
         UserData storage _userData = userData[_msgSender()];
         
         // get user current rewards if input token quantity is 0
@@ -555,7 +564,18 @@ contract RGPSpecialPool is Ownable {
         IBEP20(TOKEN).transfer(staker, amount);
     }
     
-  
+    function multipleAdmin(address[] calldata _adminAddress, bool status) external onlyOwner {
+        if (status == true) {
+           for(uint256 i = 0; i < _adminAddress.length; i++) {
+            isAdminAddress[_adminAddress[i]] = status;
+            } 
+        } else{
+            for(uint256 i = 0; i < _adminAddress.length; i++) {
+                delete(isAdminAddress[_adminAddress[i]]);
+            } 
+        }
+    }
+    
     // Safe Rigel withdraw function by admin
     function safeRigelWithdraw(address _to, uint256 _amount) onlyOwner external {
         uint256 rigelBalalance = IBEP20(TOKEN).balanceOf(address(this));
@@ -564,6 +584,14 @@ contract RGPSpecialPool is Ownable {
         } else {
             IBEP20(TOKEN).transfer(_to, _amount);
         }
+    }
+    
+     function getMinimumStakeAmount() public view returns(uint256 min) {
+        return minimum;
+    }
+    
+    function setMinimumStakeAmount(uint256 min) external onlyOwner {
+        minimum = min;
     }
     
 }
