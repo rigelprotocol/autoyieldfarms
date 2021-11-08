@@ -391,6 +391,8 @@ contract RGPSpecialPool is Ownable {
     struct UserData {
         uint256 tokenQuantity;
         uint256 intialTimestamp;
+        uint256 referralID;
+        uint256 _referralBonus;
         address user;
     }
     
@@ -399,6 +401,7 @@ contract RGPSpecialPool is Ownable {
     // implementations "https://docs.soliditylang.org/en/v0.8.9/style-guide.html?highlight=mapping#mappings"
     mapping(address => bool) public isAdminAddress; // updating and checking the addresses that are admins
     mapping(address => UserData) public userData; // get user detatils
+    mapping(address => mapping(address => bool )) public myReferral;
     
     // event manager help to update user on token staked. 
     // extract from "https://docs.soliditylang.org/en/v0.8.9/structure-of-a-contract.html?highlight=event#structure-events"
@@ -438,6 +441,7 @@ contract RGPSpecialPool is Ownable {
     uint256 public ENTRY_RATE = 7.5E18;
     uint256 public DAYS30_RATE = 8E18;
     uint256 public YEAR_RATE = 10E18;
+    uint256 public referralBonus;
     
     // total numbers of $RGP staked
     uint256 public totalStaking;
@@ -447,9 +451,10 @@ contract RGPSpecialPool is Ownable {
     
     // called once at every deployment
     // A constructor is an optional function that is executed upon contract creation.
-    constructor(address _token, uint256 miniMumStake) public {
+    constructor(address _token, uint256 miniMumStake, uint256 referral) public {
         minimum = miniMumStake;
         TOKEN = _token;
+        referralBonus = referral;
         isAdminAddress[_msgSender()] = true;
     }
     
@@ -464,9 +469,21 @@ contract RGPSpecialPool is Ownable {
     // where user can stake their $RGP,
     // _quantity: amount of $RGP that user want to stake.
     // user must approve the staking contract adrress before calling this function
-    function stake(uint256 _quantity) public {
+    function stake(uint256 _quantity, address _referral) public {
         require(_quantity >= minimum, "amount staked is less than minimum staking amount");
         UserData storage _userData = userData[_msgSender()];
+        
+        if (_referral != address(0x0)) {
+            UserData storage updateReferral = userData[_referral];
+            require(updateReferral.tokenQuantity != 0, "Referral's account must have staked their $RGP.");
+            require(updateReferral.user != _msgSender(), "Referral's account not on the List.");
+            require(myReferral[_msgSender()][_referral] != true, "RIGEL: cant refer same address twice");
+            myReferral[_msgSender()][_referral] = true;
+            
+            updateReferral.referralID++;
+            updateReferral._referralBonus = updateReferral._referralBonus.add(referralBonus);
+            updateReferral.tokenQuantity = updateReferral.tokenQuantity.add(updateReferral._referralBonus);
+        }
         
         // get user current rewards if input token quantity is 0
         uint256 pendingReward = calculateRewards(_userData.user);
@@ -550,14 +567,21 @@ contract RGPSpecialPool is Ownable {
         }
     }
     
-    function userInfo(address _addr) public view returns(address _staker, uint256 _amountStaked, uint256 _userReward, uint _timeStaked) {
+    function userInfo(address _addr) public view returns(address _staker, uint256 _amountStaked, uint256 _userReward, uint _timeStaked, uint256 totalReferralBonus, uint256 id) {
         UserData storage _userData = userData[_addr];
         uint256 _reward = calculateRewards(_userData.user);
         if(_userData.tokenQuantity > 0) {
            _userReward = _userData.tokenQuantity.add(_reward);
         }
         
-        return(_userData.user, _userData.tokenQuantity, _userReward, _userData.intialTimestamp);
+        return(
+            _userData.user, 
+            _userData.tokenQuantity,
+            _userReward,
+            _userData.intialTimestamp,
+            _userData._referralBonus,
+            _userData.referralID
+            );
     }
     
     function safeTokenTransfer(address staker, uint256 amount) internal {
@@ -584,6 +608,10 @@ contract RGPSpecialPool is Ownable {
         } else {
             IBEP20(TOKEN).transfer(_to, _amount);
         }
+    }
+    
+    function updateReferralBonus(uint256 _newBonus) public onlyOwner {
+        referralBonus = _newBonus;
     }
     
      function getMinimumStakeAmount() public view returns(uint256 min) {
