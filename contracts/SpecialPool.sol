@@ -601,7 +601,7 @@ contract RGPSpecialPool is Ownable {
     }
     
     // Safe Rigel withdraw function by admin
-    function safeRigelWithdraw(address _to, uint256 _amount) onlyOwner external {
+    function safeRigelWithdraw(address _to, uint256 _amount) external onlyOwner {
         uint256 rigelBalalance = IBEP20(TOKEN).balanceOf(address(this));
         if (_amount > rigelBalalance) {
             IBEP20(TOKEN).transfer(_to, rigelBalalance);
