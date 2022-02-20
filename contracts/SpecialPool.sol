@@ -1,4 +1,12 @@
 /**
+ *Submitted for verification at BscScan.com on 2021-12-14
+*/
+
+/**
+ *Submitted for verification at BscScan.com on 2021-11-11
+*/
+
+/**
  *Submitted for verification at BscScan.com on 2021-07-31
 */
 
@@ -267,7 +275,7 @@ interface IBEP20 {
 
 // File: contracts/utils/Address.sol
 
-pragma solidity ^0.6.12;
+// pragma solidity ^0.6.12;
 
 /**
  * @dev Collection of functions related to the address type
@@ -287,10 +295,10 @@ pragma solidity ^0.6.12;
 contract Context {
     // Empty internal constructor, to prevent people from mistakenly deploying
     // an instance of this contract, which should be used via inheritance.
-    constructor() internal {}
+    constructor() {}
 
     function _msgSender() internal view returns (address payable) {
-        return msg.sender;
+        return payable(msg.sender);
     }
 
     function _msgData() internal view returns (bytes memory) {
@@ -299,7 +307,6 @@ contract Context {
     }
 }
 
-// pragma solidity >=0.4.0;
 
 
 /**
@@ -322,7 +329,7 @@ contract Ownable is Context {
     /**
      * @dev Initializes the contract setting the deployer as the initial owner.
      */
-    constructor() internal {
+    constructor() {
         address msgSender = _msgSender();
         _owner = msgSender;
         emit OwnershipTransferred(address(0), msgSender);
@@ -375,7 +382,7 @@ contract Ownable is Context {
 
 // File: contracts/MasterChef.sol
 
-pragma solidity 0.6.12;
+pragma solidity 0.8.12;
 
 contract RGPSpecialPool is Ownable {
     
@@ -391,8 +398,6 @@ contract RGPSpecialPool is Ownable {
     struct UserData {
         uint256 tokenQuantity;
         uint256 intialTimestamp;
-        uint256 referralID;
-        uint256 _referralBonus;
         address user;
     }
     
@@ -401,7 +406,6 @@ contract RGPSpecialPool is Ownable {
     // implementations "https://docs.soliditylang.org/en/v0.8.9/style-guide.html?highlight=mapping#mappings"
     mapping(address => bool) public isAdminAddress; // updating and checking the addresses that are admins
     mapping(address => UserData) public userData; // get user detatils
-    mapping(address => mapping(address => bool )) public myReferral;
     
     // event manager help to update user on token staked. 
     // extract from "https://docs.soliditylang.org/en/v0.8.9/structure-of-a-contract.html?highlight=event#structure-events"
@@ -442,6 +446,8 @@ contract RGPSpecialPool is Ownable {
     uint256 public DAYS30_RATE = 8E18;
     uint256 public YEAR_RATE = 10E18;
     uint256 public referralBonus;
+    uint256 public capReferralBonus;
+    uint256 public totalSharedReferralBonus;
     
     // total numbers of $RGP staked
     uint256 public totalStaking;
@@ -451,10 +457,11 @@ contract RGPSpecialPool is Ownable {
     
     // called once at every deployment
     // A constructor is an optional function that is executed upon contract creation.
-    constructor(address _token, uint256 miniMumStake, uint256 referral) public {
+    constructor(address _token, uint256 miniMumStake, uint256 referral, uint256 _maxReferralPerTime) {
         minimum = miniMumStake;
         TOKEN = _token;
         referralBonus = referral;
+        capReferralBonus = _maxReferralPerTime;
         isAdminAddress[_msgSender()] = true;
     }
     
@@ -466,6 +473,10 @@ contract RGPSpecialPool is Ownable {
         _;
     }
 
+    function updateCapReferralBonus(uint256 _newCap) external onlyOwner {
+        capReferralBonus = capReferralBonus.add(_newCap);
+    }
+
     // where user can stake their $RGP,
     // _quantity: amount of $RGP that user want to stake.
     // user must approve the staking contract adrress before calling this function
@@ -474,15 +485,13 @@ contract RGPSpecialPool is Ownable {
         UserData storage _userData = userData[_msgSender()];
         
         if (_referral != address(0x0)) {
-            UserData storage updateReferral = userData[_referral];
-            require(updateReferral.tokenQuantity != 0, "Referral's account must have staked their $RGP.");
-            require(updateReferral.user != _msgSender(), "Referral's account not on the List.");
-            require(myReferral[_msgSender()][_referral] != true, "RIGEL: cant refer same address twice");
-            myReferral[_msgSender()][_referral] = true;
-            
-            updateReferral.referralID++;
-            updateReferral._referralBonus = updateReferral._referralBonus.add(referralBonus);
-            updateReferral.tokenQuantity = updateReferral.tokenQuantity.add(updateReferral._referralBonus);
+            UserData storage updateReferral = userData[_referral];            
+            require(updateReferral.user != _msgSender(), "Caller Can't Refer Self.");
+            if (capReferralBonus >= referralBonus) {
+                capReferralBonus = capReferralBonus.sub(referralBonus);
+                totalSharedReferralBonus = totalSharedReferralBonus.add(referralBonus);
+                IBEP20(TOKEN).transfer(_referral, referralBonus);
+            }            
         }
         
         // get user current rewards if input token quantity is 0
@@ -567,7 +576,7 @@ contract RGPSpecialPool is Ownable {
         }
     }
     
-    function userInfo(address _addr) public view returns(address _staker, uint256 _amountStaked, uint256 _userReward, uint _timeStaked, uint256 totalReferralBonus, uint256 id) {
+    function userInfo(address _addr) public view returns(address _staker, uint256 _amountStaked, uint256 _userReward, uint _timeStaked) {
         UserData storage _userData = userData[_addr];
         uint256 _reward = calculateRewards(_userData.user);
         if(_userData.tokenQuantity > 0) {
@@ -578,9 +587,7 @@ contract RGPSpecialPool is Ownable {
             _userData.user, 
             _userData.tokenQuantity,
             _userReward,
-            _userData.intialTimestamp,
-            _userData._referralBonus,
-            _userData.referralID
+            _userData.intialTimestamp
             );
     }
     
@@ -601,7 +608,7 @@ contract RGPSpecialPool is Ownable {
     }
     
     // Safe Rigel withdraw function by admin
-    function safeRigelWithdraw(address _to, uint256 _amount) external onlyOwner {
+    function safeRigelWithdraw(address _to, uint256 _amount)  external onlyOwner {
         uint256 rigelBalalance = IBEP20(TOKEN).balanceOf(address(this));
         if (_amount > rigelBalalance) {
             IBEP20(TOKEN).transfer(_to, rigelBalalance);
