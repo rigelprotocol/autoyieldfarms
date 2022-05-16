@@ -1453,13 +1453,19 @@ contract MasterChef is Ownable {
         
         if (_amount > 0) {
             pool.lpToken.safeTransferFrom(msg.sender, address(this), _amount);
-            uint256 userPct = ((_amount * 1.3E18) / 100E18);
-            uint256 newAmt = (_amount - userPct);
-            user.amount = user.amount.add(newAmt);
+            if (pool.extPool) {
+                uint256 userPct = ((_amount * 1.3E18) / 100E18);
+                uint256 newAmt = ( _amount - userPct);
+                 user.amount = user.amount.add(newAmt);
+                 
+            }
+           else {
+            user.amount = user.amount.add(_amount);
+           }
+           
         }
-        if (pool.extPool == true) {
+        if (pool.extPool) {
             uint256 userPct = ((_amount * 1.3E18) / 100E18);
-            pool.lpToken.safeTransferFrom(msg.sender, address(this), _amount);
             pool.lpToken.safeTransferFrom(address(this), address(devaddr), userPct);
         }
         user.rewardDebt = user.amount.mul(pool.accRigelPerShare).div(1e12);
