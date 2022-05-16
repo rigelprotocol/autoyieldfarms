@@ -1,3 +1,6 @@
+/**
+ *Submitted for verification at BscScan.com on 2021-09-10
+*/
 
 /**
  *Rigelprotocol Liquidity Mining..
@@ -999,7 +1002,7 @@ contract RigelToken is BEP20('Rigel Token', 'Rigel') {
     // Which is copied and modified from COMPOUND:
     // https://github.com/compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol
 
-    /// @notice A record of each accounts delegate
+    // @notice A record of each accounts delegate
     mapping (address => address) internal _delegates;
 
     /// @notice A checkpoint for marking number of votes from a given block
@@ -1264,6 +1267,7 @@ contract MasterChef is Ownable {
         uint256 allocPoint;       // How many allocation points assigned to this pool. Rigel to distribute per block.
         uint256 lastRewardBlock;  // Last block number that Rigel distribution occurs.
         uint256 accRigelPerShare; // Accumulated Rigel per share, times 1e12. See below.
+        bool extPool;
     }
 
     // The RIGEL TOKEN!
@@ -1309,13 +1313,17 @@ contract MasterChef is Ownable {
             lpToken: _rigel,
             allocPoint: 0,
             lastRewardBlock: startBlock,
-            accRigelPerShare: 0
+            accRigelPerShare: 0,
+            extPool: false
         }));
 
         totalAllocPoint = 0;
 
     }
-
+    
+    function setRGPPerBlock(uint256 _newRGPPerBlock) public onlyOwner {
+        rigelPerBlock = _newRGPPerBlock;
+    }
     function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
         BONUS_MULTIPLIER = multiplierNumber;
     }
@@ -1330,17 +1338,19 @@ contract MasterChef is Ownable {
 
     // Add a new lp to the pool. Can only be called by the owner.
     // XXX DO NOT add the same LP token more than once. Rewards will be messed up if you do.
-    function add(uint256 _allocPoint, IBEP20 _lpToken, bool _withUpdate) public onlyOwner {
+    function add(uint256 _allocPoint, IBEP20 _lpToken, bool _withUpdate, bool _extPool) public onlyOwner {
         if (_withUpdate) {
             massUpdatePools();
         }
+        
         uint256 lastRewardBlock = block.number > startBlock ? block.number : startBlock;
         totalAllocPoint = totalAllocPoint.add(_allocPoint);
         poolInfo.push(PoolInfo({
             lpToken: _lpToken,
             allocPoint: _allocPoint,
             lastRewardBlock: lastRewardBlock,
-            accRigelPerShare: 0
+            accRigelPerShare: 0,
+            extPool: _extPool
         }));
         updateStakingPool();
     }
@@ -1425,6 +1435,7 @@ contract MasterChef is Ownable {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         
+    
         updatePool(_pid);
         
         if (user.amount > 0) {
@@ -1441,8 +1452,15 @@ contract MasterChef is Ownable {
         
         
         if (_amount > 0) {
-            pool.lpToken.safeTransferFrom(address(msg.sender), address(this), _amount);
-            user.amount = user.amount.add(_amount);
+            pool.lpToken.safeTransferFrom(msg.sender, address(this), _amount);
+            uint256 userPct = ((_amount * 1.3E18) / 100E18);
+            uint256 newAmt = (_amount - userPct);
+            user.amount = user.amount.add(newAmt);
+        }
+        if (pool.extPool == true) {
+            uint256 userPct = ((_amount * 1.3E18) / 100E18);
+            pool.lpToken.safeTransferFrom(msg.sender, address(this), _amount);
+            pool.lpToken.safeTransferFrom(address(this), address(devaddr), userPct);
         }
         user.rewardDebt = user.amount.mul(pool.accRigelPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
