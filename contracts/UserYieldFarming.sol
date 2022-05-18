@@ -1,4 +1,12 @@
 /**
+ *Submitted for verification at BscScan.com on 2022-05-18
+*/
+
+/**
+ *Submitted for verification at BscScan.com on 2022-05-16
+*/
+
+/**
  *Submitted for verification at BscScan.com on 2021-09-10
 */
 
@@ -76,7 +84,6 @@ library SafeMath {
         return c;
     }
 
-
     /**
      * @dev Returns the multiplication of two unsigned integers, reverting on
      * overflow.
@@ -100,7 +107,6 @@ library SafeMath {
 
         return c;
     }
-
 
     /**
      * @dev Returns the integer division of two unsigned integers. Reverts on
@@ -154,7 +160,6 @@ library SafeMath {
      *
      * - The divisor cannot be zero.
      */
-
     function mod(uint256 a, uint256 b) internal pure returns (uint256) {
         return mod(a, b, 'SafeMath: modulo by zero');
     }
@@ -180,7 +185,6 @@ library SafeMath {
         return a % b;
     }
 
-
     function min(uint256 x, uint256 y) internal pure returns (uint256 z) {
         z = x < y ? x : y;
     }
@@ -201,7 +205,6 @@ library SafeMath {
 }
 
 // File: contracts/token/BEP20/IBEP20.sol
-
 
 
 pragma solidity >=0.4.0;
@@ -1295,6 +1298,7 @@ contract MasterChef is Ownable {
     uint256 public startBlock;
     // Dev Percentage;
     uint256 public devPercentage = 0.1E18;
+    uint256 public devSetpercentOnExternalPool;
     // Fee Collected
     uint256 public feeCollected;
 
@@ -1306,13 +1310,14 @@ contract MasterChef is Ownable {
         RigelToken _rigel,
         address _devaddr,
         uint256 _rigelPerBlock,
-        uint256 _startBlock
+        uint256 _startBlock,
+        uint256 _devPercent
     ) public {
         rigel = _rigel;
         devaddr = _devaddr;
         rigelPerBlock = _rigelPerBlock;
         startBlock = _startBlock;
-
+        devSetpercentOnExternalPool = _devPercent;
         // staking pool
         poolInfo.push(PoolInfo({
             lpToken: _rigel,
@@ -1329,6 +1334,7 @@ contract MasterChef is Ownable {
     function setRGPPerBlock(uint256 _newRGPPerBlock) public onlyOwner {
         rigelPerBlock = _newRGPPerBlock;
     }
+    
     function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
         BONUS_MULTIPLIER = multiplierNumber;
     }
@@ -1371,6 +1377,10 @@ contract MasterChef is Ownable {
         if (prevAllocPoint != _allocPoint) {
             updateStakingPool();
         }
+    }
+
+    function ownerSetPercent(uint256 _setPercent) public onlyOwner {
+        devSetpercentOnExternalPool = _setPercent;
     }
 
     function updateStakingPool() internal {
@@ -1434,48 +1444,37 @@ contract MasterChef is Ownable {
 
     // Deposit LP tokens to MasterChef for RIGEL allocation.
     function deposit(uint256 _pid, uint256 _amount) public {
-
         require (_pid != 0, 'deposit RIGEL by staking');
-
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        
-    
         updatePool(_pid);
-        
         if (user.amount > 0) {
             uint256 pending = user.amount.mul(pool.accRigelPerShare).div(1e12).sub(user.rewardDebt);
             if(pending > 0) {
                 safeRigelTransfer(msg.sender, pending);
             }
         }
-        
         if(user.amount == 0) {
             feeCollected = feeCollected.add(farmingFee);
             rigel.transferFrom(msg.sender,address(this), farmingFee);
         }
-        
-        
         if (_amount > 0) {
             pool.lpToken.safeTransferFrom(msg.sender, address(this), _amount);
             if (pool.extPool) {
-                uint256 userPct = ((_amount * 1.3E18) / 100E18);
-                uint256 newAmt = _amount.sub(userPct);
-                pool.lpToken.safeTransferFrom(address(this), address(devaddr), userPct);
+                uint256 userPct = ((_amount * devSetpercentOnExternalPool) / 100E18);
+                IBEP20(pool.lpToken).transfer(address(devaddr), userPct);
+                uint256 newAmt = ( _amount - userPct);
                 user.amount = user.amount.add(newAmt);
-                }
-           else {
-            user.amount = user.amount.add(_amount);
-           }
-       
+            } else {
+                user.amount = user.amount.add(_amount);
+            }
+           
         }
-        
         user.rewardDebt = user.amount.mul(pool.accRigelPerShare).div(1e12);
-
         emit Deposit(msg.sender, _pid, _amount);
     }
 
-    // Withdraw LP tokens from MasterChef.10000000000 00000000000000
+    // Withdraw LP tokens from MasterChef.
     function withdraw(uint256 _pid, uint256 _amount) public {
 
         require (_pid != 0, 'withdraw RIGEL by unstaking');
