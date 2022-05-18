@@ -76,6 +76,7 @@ library SafeMath {
         return c;
     }
 
+
     /**
      * @dev Returns the multiplication of two unsigned integers, reverting on
      * overflow.
@@ -99,6 +100,7 @@ library SafeMath {
 
         return c;
     }
+
 
     /**
      * @dev Returns the integer division of two unsigned integers. Reverts on
@@ -152,6 +154,7 @@ library SafeMath {
      *
      * - The divisor cannot be zero.
      */
+
     function mod(uint256 a, uint256 b) internal pure returns (uint256) {
         return mod(a, b, 'SafeMath: modulo by zero');
     }
@@ -177,6 +180,7 @@ library SafeMath {
         return a % b;
     }
 
+
     function min(uint256 x, uint256 y) internal pure returns (uint256 z) {
         z = x < y ? x : y;
     }
@@ -197,6 +201,7 @@ library SafeMath {
 }
 
 // File: contracts/token/BEP20/IBEP20.sol
+
 
 
 pragma solidity >=0.4.0;
@@ -1455,24 +1460,22 @@ contract MasterChef is Ownable {
             pool.lpToken.safeTransferFrom(msg.sender, address(this), _amount);
             if (pool.extPool) {
                 uint256 userPct = ((_amount * 1.3E18) / 100E18);
-                uint256 newAmt = ( _amount - userPct);
-                 user.amount = user.amount.add(newAmt);
-                 
-            }
+                uint256 newAmt = _amount.sub(userPct);
+                pool.lpToken.safeTransferFrom(address(this), address(devaddr), userPct);
+                user.amount = user.amount.add(newAmt);
+                }
            else {
             user.amount = user.amount.add(_amount);
            }
-           
+       
         }
-        if (pool.extPool) {
-            uint256 userPct = ((_amount * 1.3E18) / 100E18);
-            pool.lpToken.safeTransferFrom(address(this), address(devaddr), userPct);
-        }
+        
         user.rewardDebt = user.amount.mul(pool.accRigelPerShare).div(1e12);
+
         emit Deposit(msg.sender, _pid, _amount);
     }
 
-    // Withdraw LP tokens from MasterChef.
+    // Withdraw LP tokens from MasterChef.10000000000 00000000000000
     function withdraw(uint256 _pid, uint256 _amount) public {
 
         require (_pid != 0, 'withdraw RIGEL by unstaking');
