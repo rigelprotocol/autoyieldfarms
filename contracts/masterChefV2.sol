@@ -1,6 +1,9 @@
+/**
+ *Submitted for verification at BscScan.com on 2021-10-02
+*/
 
 /**
- *Rigelprotocol Liquidity Mining..
+ *Rigelprotocol Liquidity Mining V2..
 */
 
 // File: contracts/math/SafeMath.sol
@@ -999,7 +1002,7 @@ contract RigelToken is BEP20('Rigel Token', 'Rigel') {
     // Which is copied and modified from COMPOUND:
     // https://github.com/compound-finance/compound-protocol/blob/master/contracts/Governance/Comp.sol
 
-    /// @notice A record of each accounts delegate
+    // @notice A record of each accounts delegate
     mapping (address => address) internal _delegates;
 
     /// @notice A checkpoint for marking number of votes from a given block
@@ -1315,7 +1318,10 @@ contract MasterChef is Ownable {
         totalAllocPoint = 0;
 
     }
-
+    
+    function setRGPPerBlock(uint256 _newRGPPerBlock) public onlyOwner {
+        rigelPerBlock = _newRGPPerBlock;
+    }
     function updateMultiplier(uint256 multiplierNumber) public onlyOwner {
         BONUS_MULTIPLIER = multiplierNumber;
     }
